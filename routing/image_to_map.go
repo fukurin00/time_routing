@@ -24,7 +24,8 @@ type MapMeta struct {
 	H      int
 	Origin Point
 	Reso   float64
-	Data   []int8
+
+	Data []int8
 }
 
 // read image file of ROS format

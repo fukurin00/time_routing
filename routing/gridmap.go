@@ -13,8 +13,6 @@ type GridMap struct {
 	Height     int
 	MapOrigin  Point
 
-	CurrentMinTime float64
-
 	MaxT      int    // =MaxTimeLenghth
 	ObjectMap ObjMap //元からある障害物ならTrue
 }
@@ -65,6 +63,10 @@ func NewGridMapReso(m MapMeta, robotRadius float64, resolution float64, objMap [
 	for j := 0; j < g.Height; j++ {
 		y := g.Origin.Y + float64(j)*g.Resolution
 		for i := 0; i < g.Width; i++ {
+			if m.Data[i+j*m.W] == 50 {
+				g.ObjectMap[newIndex(i, j)] = true
+				continue
+			}
 			x := g.Origin.X + float64(i)*g.Resolution
 			g.ObjectMap[newIndex(i, j)] = false
 			for _, op := range objMap {
@@ -111,6 +113,10 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 	for i := 0; i < width; i++ {
 		x := m.Origin.X + float64(i)*resolution*math.Sqrt(3)/2
 		for j := 0; j < height; j++ {
+			if m.Data[i+j*m.W] == 50 {
+				g.ObjectMap[newIndex(i, j)] = true
+				continue
+			}
 			var y float64
 			if i%2 == 0 {
 				y = m.Origin.Y + float64(j)*resolution
@@ -118,6 +124,7 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 				y = m.Origin.Y - m.Reso/2 + float64(j)*resolution
 			}
 			g.ObjectMap[newIndex(i, j)] = false
+
 			for _, op := range objMap {
 				d := math.Hypot(op[0]-x, op[1]-y)
 				if d <= robotRadius {
