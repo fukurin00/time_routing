@@ -24,11 +24,12 @@ type MapMeta struct {
 	H      int
 	Origin Point
 	Reso   float64
-	Data   []int8
+
+	Data []int8
 }
 
 // read image file of ROS format
-func ReadStaticMapImage(yamlFile string, closeThreth float64) (*MapMeta, error) {
+func ReadStaticMapImage(yamlFile string) (*MapMeta, error) {
 	m := new(MapMeta)
 	mapConfig := ReadImageYaml(yamlFile)
 	m.Reso = mapConfig.Resolution
@@ -53,6 +54,7 @@ func ReadStaticMapImage(yamlFile string, closeThreth float64) (*MapMeta, error) 
 	data := make([]int8, m.W*m.H)
 	open := 0
 	close := 0
+	midle := 0
 
 	output := image.NewNRGBA(imData.Bounds())
 
@@ -64,19 +66,23 @@ func ReadStaticMapImage(yamlFile string, closeThreth float64) (*MapMeta, error) 
 
 			a := (255.0 - float64(pixelU)) / 255.0
 			var v int8 = 0
-			if a > closeThreth {
+			if a >= mapConfig.OccupiedThresh {
 				v = 100
 				close += 1
 				output.Set(i, j, color.Black)
-			} else {
+			} else if a <= mapConfig.FreeThresh {
 				v = 0
 				open += 1
-				output.Set(i, j, color.Opaque)
+				output.Set(i, j, color.White)
+			} else {
+				v = 50
+				midle += 1
+				output.Set(i, j, color.Gray16{30000})
 			}
 			data[i+(m.H-j-1)*m.W] = v
 		}
 	}
-	log.Printf("open: %d, close: %d", open, close)
+	log.Printf("open: %d, close: %d, midle: %d", open, close, midle)
 	m.Data = data
 
 	f, err := os.Create("log/costmap.png")

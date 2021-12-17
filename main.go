@@ -26,10 +26,6 @@ import (
 	"github.com/golang/protobuf/ptypes"
 )
 
-const (
-	closeThresh float64 = 0.5
-)
-
 var (
 	mode Mode
 
@@ -309,7 +305,7 @@ func LoggingSettings(logFile string) {
 }
 
 func SetupStaticMap() {
-	mapMeta, err := grid.ReadStaticMapImage(*yamlFile, closeThresh)
+	mapMeta, err := grid.ReadStaticMapImage(*yamlFile)
 	if err != nil {
 		log.Print("read map file error: ", err)
 	}
