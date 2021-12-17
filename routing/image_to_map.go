@@ -28,7 +28,7 @@ type MapMeta struct {
 }
 
 // read image file of ROS format
-func ReadStaticMapImage(yamlFile string, closeThreth float64) (*MapMeta, error) {
+func ReadStaticMapImage(yamlFile string) (*MapMeta, error) {
 	m := new(MapMeta)
 	mapConfig := ReadImageYaml(yamlFile)
 	m.Reso = mapConfig.Resolution
