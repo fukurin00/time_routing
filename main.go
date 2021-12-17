@@ -117,13 +117,15 @@ func routing(rcd *cav.PathRequest) {
 		}
 
 		// update robot time map
-		now := time.Now()
-		elap := now.Sub(timeMapMin).Seconds()
-		updateStep := int(math.Round(elap / timeStep))
-		timeRobotMap = gridMap.UpdateStep(timeRobotMap, updateStep)
-		addTime := time.Duration(int64(float64(updateStep)*timeStep)) * time.Second
-		timeMapMin = timeMapMin.Add(addTime)
-		log.Printf("elaps %fseconds update robot cost map %dtimestep, %f added", elap, updateStep, addTime.Seconds())
+		if mode == ASTAR3DHEXA {
+			now := time.Now()
+			elap := now.Sub(timeMapMin).Seconds()
+			updateStep := int(math.Round(elap / timeStep))
+			timeRobotMap = gridMap.UpdateStep(timeRobotMap, updateStep)
+			addTime := time.Duration(int64(float64(updateStep)*timeStep)) * time.Second
+			timeMapMin = timeMapMin.Add(addTime)
+			log.Printf("elaps %fseconds update robot cost map %dtimestep, %f added", elap, updateStep, addTime.Seconds())
+		}
 
 		//planning
 		log.Printf("start planning robot%d (%f, %f) to (%f, %f)", rcd.RobotId, rcd.Start.X, rcd.Start.Y, rcd.Goal.X, rcd.Goal.Y)
@@ -153,15 +155,16 @@ func routing(rcd *cav.PathRequest) {
 			publishPath(path)
 
 			// update time costmap
-			gridMap.UpdateTimeObjMapHexa(timeRobotMap, routei, aroundCell, *timeStepblockLenghth)
 			now := time.Now()
-			elap := now.Sub(timeMapMin).Seconds()
-			updateStep := int(math.Round(elap / timeStep))
-			timeRobotMap = gridMap.UpdateStep(timeRobotMap, updateStep)
-			addTime := time.Duration(int64(float64(updateStep)*timeStep)) * time.Second
-			timeMapMin = timeMapMin.Add(addTime)
-			log.Printf("elaps %fsecond update robot cost map %dtimestep, %f added", elap, updateStep, addTime.Seconds())
-
+			if mode == ASTAR3DHEXA {
+				gridMap.UpdateTimeObjMapHexa(timeRobotMap, routei, aroundCell, *timeStepblockLenghth)
+				elap := now.Sub(timeMapMin).Seconds()
+				updateStep := int(math.Round(elap / timeStep))
+				timeRobotMap = gridMap.UpdateStep(timeRobotMap, updateStep)
+				addTime := time.Duration(int64(float64(updateStep)*timeStep)) * time.Second
+				timeMapMin = timeMapMin.Add(addTime)
+				log.Printf("elaps %fsecond update robot cost map %dtimestep, %f added", elap, updateStep, addTime.Seconds())
+			}
 			// save route file
 			csvName := fmt.Sprintf("log/route/%s/%s_%d.csv", now.Format("2006-01-02"), now.Format("01-02-15-4"), rcd.RobotId)
 			go grid.SaveRouteCsv(csvName, times, route)
