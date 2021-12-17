@@ -129,5 +129,5 @@ func SaveCostMap(tw TimeRobotMap) {
 	jout, _ := json.Marshal(keymap)
 	now := time.Now()
 	fname := fmt.Sprintf("log/costmap/%s/costmap_%s.log", now.Format("2006-01-02"), now.Format("01-02-15"))
-	ioutil.WriteFile(fname, jout, 0666)
+	ioutil.WriteFile(fname, jout, 0777)
 }
