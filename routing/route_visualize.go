@@ -9,7 +9,7 @@ import (
 )
 
 func SaveRouteCsv(fname string, times []time.Time, route [][2]float64) {
-	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0600)
+	file, err := os.OpenFile(fname, os.O_WRONLY|os.O_CREATE, 0777)
 	if err != nil {
 		log.Print(err)
 	}
