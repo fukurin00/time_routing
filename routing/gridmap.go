@@ -112,8 +112,16 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 	g.ObjectMap = make(map[Index]bool)
 	for i := 0; i < width; i++ {
 		x := m.Origin.X + float64(i)*resolution*math.Sqrt(3)/2
+		mi := int(math.Round(float64(i) * resolution / m.Reso))
+		if mi >= m.W {
+			mi = m.W - 1
+		}
 		for j := 0; j < height; j++ {
-			if m.Data[i+j*m.W] == 50 {
+			mj := int(math.Round(float64(j) * resolution / m.Reso))
+			if mj >= m.H {
+				mj = m.H - 1
+			}
+			if m.Data[mi+mj*m.W] == 50 {
 				g.ObjectMap[newIndex(i, j)] = true
 				continue
 			}
