@@ -107,7 +107,9 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 	g.Height = height
 
 	g.MaxT = MaxTimeLength
-	count := 0
+	grey := 0
+	white := 0
+	black := 0
 
 	g.ObjectMap = make(map[Index]bool)
 	for i := 0; i < width; i++ {
@@ -123,6 +125,7 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 			}
 			if m.Data[mi+mj*m.W] == 50 {
 				g.ObjectMap[newIndex(i, j)] = true
+				grey += 1
 				continue
 			}
 			var y float64
@@ -132,12 +135,13 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 				y = m.Origin.Y - m.Reso/2 + float64(j)*resolution
 			}
 			g.ObjectMap[newIndex(i, j)] = false
-
+			white += 1
 			for _, op := range objMap {
 				d := math.Hypot(op[0]-x, op[1]-y)
 				if d <= robotRadius {
 					g.ObjectMap[newIndex(i, j)] = true
-					count += 1
+					black += 1
+					white -= 1
 					break
 				}
 			}
@@ -145,7 +149,7 @@ func NewGridMapResoHexa(m MapMeta, robotRadius float64, resolution float64, objM
 	}
 
 	elaps := time.Since(start).Seconds()
-	log.Printf("loading gridmap resolution: %f, takes: %f seconds, obj %d counts, width: %d, height: %d, origin %f,%f", resolution, elaps, count, g.Width, g.Height, g.Origin.X, g.Origin.Y)
+	log.Printf("loading gridmap resolution: %f, takes: %f seconds, white: %d, grey: %d, black: %d, counts, width: %d, height: %d, origin %f,%f", resolution, elaps, white, grey, black, g.Width, g.Height, g.Origin.X, g.Origin.Y)
 	return g
 }
 

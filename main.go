@@ -11,7 +11,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/fukurin00/time_routing/msg"
 	grid "github.com/fukurin00/time_routing/routing"
 	"github.com/fukurin00/time_routing/synerex"
 
@@ -21,7 +20,6 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	astar "github.com/fukurin00/astar_golang"
-	"github.com/synerex/proto_mqtt"
 
 	"github.com/golang/protobuf/ptypes"
 )
@@ -33,7 +31,7 @@ var (
 	robotsize            = flag.Float64("robotSize", 0.4, "robot radius")
 	robotVel             = flag.Float64("robotVel", 1.5, "robot velocity")
 	resolution           = flag.Float64("reso", 0.3, "path planning resolution")
-	modeF                = flag.Int("mode", 2, "planning mode: 0:astar2d, 1:astar3d, 2:hexastar3d, 3:hexastar2d,  default is 2")
+	modeF                = flag.Int("mode", 2, "planning mode: 0,1:astar2d, 2:hexastar3d, 3:hexastar2d")
 	yamlFile             = flag.String("yaml", "map/projection_edit.yaml", "yaml file")
 	timeBeta             = flag.Float64("timebeta", 1.5, "the weight of time scale")
 	timeStepblockLenghth = flag.Int("tsl", 10, "how many timesteps does a single route occupy")
@@ -51,7 +49,6 @@ var (
 	reso          float64
 	robotRadius   float64
 	robotVelocity float64
-	aroundCell    int
 )
 
 func init() {
@@ -64,8 +61,6 @@ func init() {
 	robotRadius = *robotsize
 	robotVelocity = *robotVel
 	timeStep = reso / robotVelocity
-
-	aroundCell = grid.GetAoundCell(robotRadius, reso)
 
 	grid.MaxTimeLength = *maxTimeLenghth
 }
@@ -92,7 +87,6 @@ func handleRouting() {
 }
 
 func routing(rcd *cav.PathRequest) {
-	var jsonPayload []byte
 	if mode == ASTAR3DHEXA || mode == ASTAR2DHEXA {
 		if gridMap == nil {
 			log.Print("not receive gridMap yet ...")
@@ -153,7 +147,7 @@ func routing(rcd *cav.PathRequest) {
 			// update time costmap
 			now := time.Now()
 			if mode == ASTAR3DHEXA {
-				gridMap.UpdateTimeObjMapHexa(timeRobotMap, routei, aroundCell, *timeStepblockLenghth)
+				gridMap.UpdateTimeObjMapHexa(timeRobotMap, routei, grid.GetAoundCell(robotRadius, reso), *timeStepblockLenghth)
 				elap := now.Sub(timeMapMin).Seconds()
 				updateStep := int(math.Round(elap / timeStep))
 				timeRobotMap = gridMap.UpdateStep(timeRobotMap, updateStep)
@@ -166,27 +160,7 @@ func routing(rcd *cav.PathRequest) {
 			go grid.SaveRouteCsv(csvName, times, route)
 
 		}
-
-	} else if mode == ASTAR3D {
-		if gridMap == nil {
-			log.Print("not receive gridMap yet ...")
-			return
-		}
-		isx, isy := gridMap.Pos2Ind(float64(rcd.Start.X), float64(rcd.Start.Y))
-		igx, igy := gridMap.Pos2Ind(float64(rcd.Goal.X), float64(rcd.Goal.Y))
-
-		routei, err := gridMap.Plan(isx, isy, igx, igy, grid.TRWCopy(timeRobotMap))
-		if err != nil {
-			log.Print(err)
-		} else {
-			route := gridMap.Route2Pos(0, routei)
-			jsonPayload, err = msg.MakePathMsg(route)
-			if err != nil {
-				log.Print(err)
-			}
-			sendPath(jsonPayload, int(rcd.RobotId))
-		}
-	} else if mode == ASTAR2D {
+	} else if mode == ASTAR2D || mode == ASTAR3D {
 		start := time.Now()
 		route, err := astarPlanner.Plan(float64(rcd.Start.X), float64(rcd.Start.Y), float64(rcd.Goal.X), float64(rcd.Goal.Y))
 		if err != nil {
@@ -228,31 +202,6 @@ func publishPath(d *cav.Path) {
 	} else {
 		log.Printf("publish path robot%d", d.RobotId)
 	}
-}
-
-// send ros path message in mqtt
-func sendPath(jsonPayload []byte, id int) {
-	topic := fmt.Sprintf("robot/path/%d", id)
-	mqttProt := proto_mqtt.MQTTRecord{
-		Topic:  topic,
-		Record: jsonPayload,
-	}
-	out, err := proto.Marshal(&mqttProt)
-	if err != nil {
-		log.Print(err)
-	}
-	cout := api.Content{Entity: out}
-	smo := sxutil.SupplyOpts{
-		Name:  "robotRoute",
-		Cdata: &cout,
-	}
-	_, err = synerex.MqttClient.NotifySupply(&smo)
-	if err != nil {
-		log.Print(err)
-	} else {
-		log.Printf("send path robot%d topic:%s", id, topic)
-	}
-
 }
 
 func routeCallback(client *sxutil.SXServiceClient, sp *api.Supply) {
@@ -325,7 +274,7 @@ func SetupStaticMap() {
 }
 
 func main() {
-	log.Printf("start geo-routing server mode:%s, timestep:%f, resolution:%f, robotRadius:%f,robotVel: %f, aroundCell: %d, mapfile:%s", mode.String(), timeStep, reso, *robotsize, *robotVel, aroundCell, *yamlFile)
+	log.Printf("start geo-routing server mode:%s, timestep:%f, resolution:%f, robotRadius:%f,robotVel: %f, aroundCell: %d, mapfile:%s", mode.String(), timeStep, reso, *robotsize, *robotVel, grid.GetAoundCell(robotRadius, reso), *yamlFile)
 	go sxutil.HandleSigInt()
 	wg := sync.WaitGroup{}
 	sxutil.RegisterDeferFunction(sxutil.UnRegisterNode)
